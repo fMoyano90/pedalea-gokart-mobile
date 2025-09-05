@@ -9,7 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fmoyano.pedaleamobile",
+      "deploymentTarget": "13.4"
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +35,23 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.271907156451-l60188toionf2j3ebhqp3q8jn2ldm79m"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          },
+          "ios": {
+            "googleServicesFile": "./GoogleService-Info.plist"
+          }
         }
       ]
     ],

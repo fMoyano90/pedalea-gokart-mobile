@@ -11,12 +11,15 @@ import {
   Easing,
   Dimensions,
   Text,
+  Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/ThemedText';
+import { authService, loginWithEmail } from '@/lib/auth.service';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const BRAND_WHITE = '#FFFFFF';
 const BRAND_ORANGE = '#E56E1E';
@@ -25,15 +28,55 @@ const BRAND_ASPHALT = '#1C1B17';
 export default function LoginScreen() {
   const [pilotName, setPilotName] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const windowWidth = Dimensions.get('window').width;
   const kartX = useRef(new Animated.Value(0)).current;
   const rotation = useRef(new Animated.Value(0)).current;
+  const { saveAuthData } = useAuth();
 
   const isFormValid = useMemo(() => pilotName.trim().length > 0 && password.trim().length > 0, [pilotName, password]);
 
-  function handleGoPress() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  async function handleEmailLogin() {
+    if (!isFormValid || isLoading) return;
 
+    setIsLoading(true);
+    try {
+      const response = await loginWithEmail(pilotName.trim(), password);
+      console.log('Login exitoso:', response);
+      
+      // Guardar datos de autenticación
+      await saveAuthData(response);
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      playKartAnimation();
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      Alert.alert('Error de Login', error.message || 'No se pudo iniciar sesión');
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      await authService.initializeGoogleSignIn();
+      const response = await authService.signInWithGoogle();
+      console.log('Login con Google exitoso:', response);
+      
+      await saveAuthData(response);
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      playKartAnimation();
+    } catch (error: any) {
+      console.error('Error en Google login:', error);
+      Alert.alert('Error de Login con Google', error.message || 'No se pudo iniciar sesión con Google');
+      setIsLoading(false);
+    }
+  }
+
+  function playKartAnimation() {
     // Playful kart sprint animation across the screen
     kartX.setValue(0);
     rotation.setValue(0);
@@ -51,6 +94,7 @@ export default function LoginScreen() {
       ]),
     ]).start(({ finished }) => {
       if (finished) {
+        setIsLoading(false);
         router.replace('/');
       }
     });
@@ -96,15 +140,18 @@ export default function LoginScreen() {
         {/* Form Card */}
         <View style={styles.card}>
           <ThemedText lightColor={BRAND_ASPHALT} darkColor={BRAND_ASPHALT} style={styles.inputLabel}>
-            Nombre de piloto
+            Email
           </ThemedText>
           <TextInput
             value={pilotName}
             onChangeText={setPilotName}
-            placeholder="Ej: Super Nico"
+            placeholder="tu@email.com"
             placeholderTextColor="#9CA3AF"
-            autoCapitalize="words"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
             style={styles.input}
+            editable={!isLoading}
           />
 
           <ThemedText lightColor={BRAND_ASPHALT} darkColor={BRAND_ASPHALT} style={styles.inputLabel}>
@@ -117,23 +164,56 @@ export default function LoginScreen() {
             placeholderTextColor="#9CA3AF"
             secureTextEntry
             style={styles.input}
+            editable={!isLoading}
           />
 
           <Pressable
             accessibilityRole="button"
-            onPress={handleGoPress}
-            disabled={!isFormValid}
+            onPress={handleEmailLogin}
+            disabled={!isFormValid || isLoading}
             style={({ pressed }) => [
               styles.goButton,
-              { opacity: isFormValid ? (pressed ? 0.85 : 1) : 0.5 },
+              { opacity: (isFormValid && !isLoading) ? (pressed ? 0.85 : 1) : 0.5 },
             ]}
           >
-            <Text style={styles.goButtonText}>¡GO!</Text>
+            <Text style={styles.goButtonText}>
+              {isLoading ? 'Arrancando...' : '¡GO!'}
+            </Text>
           </Pressable>
+
+          {/* Separador */}
+          <View style={styles.separatorContainer}>
+            <View style={styles.separatorLine} />
+            <Text style={styles.separatorText}>o</Text>
+            <View style={styles.separatorLine} />
+          </View>
+
+          {/* Google Sign-In Button */}
+          <View style={styles.googleButtonContainer}>
+            <Pressable
+              onPress={handleGoogleLogin}
+              disabled={isLoading}
+              style={({ pressed }) => [
+                styles.googleButton,
+                { opacity: isLoading ? 0.5 : (pressed ? 0.85 : 1) }
+              ]}
+            >
+              <Text style={styles.googleButtonText}>
+                � Continuar con Google
+              </Text>
+            </Pressable>
+          </View>
 
           <View style={styles.helperRow}>
             <Text style={styles.helperText}>¿Olvidaste tu contraseña?</Text>
             <Text style={styles.helperLink}> Recuperar</Text>
+          </View>
+
+          <View style={styles.helperRow}>
+            <Text style={styles.helperText}>¿No tienes cuenta?</Text>
+            <Pressable onPress={() => router.push('./register' as any)}>
+              <Text style={styles.helperLink}> Crear cuenta</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -256,6 +336,41 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 1.5,
+  },
+  separatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  separatorText: {
+    marginHorizontal: 16,
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  googleButtonContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  googleButton: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleButtonText: {
+    color: BRAND_ASPHALT,
+    fontSize: 16,
+    fontWeight: '600',
   },
   helperRow: {
     flexDirection: 'row',

@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fmoyano.pedaleamobile"
+      "bundleIdentifier": "com.fmoyano.pedaleamobile",
+      "deploymentTarget": "13.4"
     },
     "android": {
       "adaptiveIcon": {

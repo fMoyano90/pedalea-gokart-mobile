@@ -95,7 +95,7 @@ export default function LoginScreen() {
     ]).start(({ finished }) => {
       if (finished) {
         setIsLoading(false);
-        router.replace('/');
+        router.replace('./game-select' as any);
       }
     });
   }

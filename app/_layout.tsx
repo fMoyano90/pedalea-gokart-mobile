@@ -22,6 +22,9 @@ export default function RootLayout() {
       <Stack initialRouteName="login">
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="game-select" options={{ headerShown: false }} />
+        <Stack.Screen name="game-waiting" options={{ headerShown: false }} />
+        <Stack.Screen name="game-active" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
